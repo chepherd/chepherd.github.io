@@ -51,12 +51,23 @@ OS="$(uname_os)"
 ARCH="$(uname_arch)"
 color info "chepherd installer — detected ${OS}/${ARCH}"
 
-# Resolve latest release tag via the GitHub API redirect.
+# Resolve the most recent release tag — handles prereleases too.
+# 1. Try the stable /releases/latest redirect.
+# 2. If that yields a literal "latest" (no stable release), query the API
+#    for the newest tag (prereleases included).
 LATEST_URL="$(curl -sL -o /dev/null -w '%{url_effective}' \
-  "https://github.com/${REPO}/releases/latest")"
+  "https://github.com/${REPO}/releases/latest" 2>/dev/null || true)"
 TAG="$(basename "${LATEST_URL}")"
 
-if [ "${TAG}" = "latest" ]; then
+if [ "${TAG}" = "latest" ] || [ "${TAG}" = "releases" ] || [ -z "${TAG}" ]; then
+  # No stable release; fetch most recent tag (prerelease-aware).
+  TAG="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases" 2>/dev/null \
+    | grep -oE '"tag_name":\s*"[^"]+"' \
+    | head -1 \
+    | sed -E 's/.*"([^"]+)"/\1/' || true)"
+fi
+
+if [ -z "${TAG}" ]; then
   color warn "no releases published yet — falling back to 'go install'"
   if command -v go > /dev/null 2>&1; then
     go install github.com/chepherd/chepherd@latest
