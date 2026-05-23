@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>chepherd — TUI supervisor for parallel AI coding agents</title>
+<meta name="description" content="A daemon + k9s-style dashboard that watches every Claude Code session you run across all your repos, scores each on goal/velocity/focus/end-state, and coaches them when they drift — using your own CLAUDE.md as the rubric.">
+<meta property="og:title" content="chepherd — a supervisor for parallel AI coding agents">
+<meta property="og:description" content="Like k9s for Kubernetes, but for the parallel-AI-agent operator. Open source. MIT.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chepherd.org">
+<link rel="preconnect" href="https://img.shields.io" crossorigin>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+:root {
+  --bg: #0a0e14;
+  --bg2: #11161f;
+  --fg: #ffffff;
+  --fg-dim: #5f9ea0;
+  --logo: #ffa500;
+  --title: #00ffff;
+  --border: #1e90ff;
+  --rule: #87cefa;
+  --green: #adff2f;
+  --orange: #ff8c00;
+  --red: #ff4500;
+  --metric: #ffefd5;
+  --ref: #4682b4;
+  --magenta: #9370db;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, Consolas, monospace;
+  font-size: 16px;
+  line-height: 1.55;
+}
+.container {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+header.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+header.brand h1 {
+  font-size: 48px;
+  margin: 0;
+  color: var(--logo);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+header.brand .tagline {
+  color: var(--fg-dim);
+  font-size: 18px;
+}
+.pitch {
+  font-size: 20px;
+  color: var(--fg);
+  max-width: 64ch;
+  margin: 24px 0 32px;
+}
+.pitch .em { color: var(--title); }
+.badges { margin: 16px 0 36px; }
+.badges img { vertical-align: middle; margin-right: 6px; }
+.demo {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin: 32px 0;
+  font-size: 13px;
+  overflow-x: auto;
+  white-space: pre;
+}
+.demo .logo { color: var(--logo); font-weight: 700; }
+.demo .meta { color: var(--fg-dim); }
+.demo .title { color: var(--title); font-weight: 700; }
+.demo .rule { color: var(--rule); }
+.demo .green { color: var(--green); }
+.demo .yellow { color: var(--orange); }
+.demo .red { color: var(--red); font-weight: 700; }
+.demo .metric { color: var(--metric); }
+.demo .ref { color: var(--ref); }
+.demo .key { color: var(--border); font-weight: 700; }
+.demo .selected {
+  background: var(--title);
+  color: #000;
+  font-weight: 700;
+  display: inline-block;
+  padding: 0 4px;
+}
+.demo .crumb {
+  background: #4682b4;
+  color: #000;
+  padding: 0 6px;
+}
+.demo .crumb .active { color: var(--logo); }
+section h2 {
+  color: var(--title);
+  font-size: 22px;
+  margin: 48px 0 8px;
+  letter-spacing: 0.02em;
+}
+section h2 + .rule { color: var(--rule); margin: 0 0 16px; font-size: 14px; }
+ul.what { list-style: none; padding-left: 0; }
+ul.what li {
+  padding: 8px 0;
+  border-bottom: 1px solid #1e90ff20;
+}
+ul.what li:last-child { border-bottom: none; }
+ul.what .marker { color: var(--green); font-weight: 700; margin-right: 10px; }
+pre.install {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px 18px;
+  overflow-x: auto;
+  font-size: 14px;
+}
+pre.install .comment { color: var(--fg-dim); }
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+.card {
+  background: var(--bg2);
+  border: 1px solid #1e90ff40;
+  border-radius: 6px;
+  padding: 16px;
+}
+.card h3 {
+  color: var(--title);
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+.card p {
+  margin: 0;
+  color: var(--fg);
+  font-size: 14px;
+}
+footer {
+  margin-top: 72px;
+  padding-top: 24px;
+  border-top: 1px solid #1e90ff40;
+  color: var(--fg-dim);
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+footer a { color: var(--border); text-decoration: none; }
+footer a:hover { color: var(--title); }
+.gh-stats {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+@media (max-width: 600px) {
+  header.brand { flex-direction: column; align-items: flex-start; gap: 4px; }
+  header.brand h1 { font-size: 36px; }
+  .pitch { font-size: 17px; }
+  .demo { font-size: 11px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<header class="brand">
+  <h1>chepherd</h1>
+  <span class="tagline">/ʃep·hɜrd/ — a TUI supervisor for parallel AI coding agents</span>
+</header>
+
+<div class="badges">
+  <a href="https://github.com/chepherd/chepherd"><img alt="stars"
+    src="https://img.shields.io/github/stars/chepherd/chepherd?style=flat-square&color=ffa500&labelColor=11161f"></a>
+  <a href="https://github.com/chepherd/chepherd/blob/main/LICENSE"><img alt="MIT"
+    src="https://img.shields.io/github/license/chepherd/chepherd?style=flat-square&color=adff2f&labelColor=11161f"></a>
+  <a href="https://github.com/chepherd/chepherd/releases"><img alt="release"
+    src="https://img.shields.io/github/v/release/chepherd/chepherd?style=flat-square&color=00ffff&labelColor=11161f&include_prereleases"></a>
+  <a href="https://github.com/chepherd/chepherd/commits/main"><img alt="last commit"
+    src="https://img.shields.io/github/last-commit/chepherd/chepherd?style=flat-square&color=87cefa&labelColor=11161f"></a>
+  <a href="https://github.com/chepherd/chepherd/issues"><img alt="open issues"
+    src="https://img.shields.io/github/issues/chepherd/chepherd?style=flat-square&color=ff8c00&labelColor=11161f"></a>
+</div>
+
+<p class="pitch">
+A daemon and <span class="em">k9s-style terminal dashboard</span> that watches every Claude
+Code session you run across all your repos, scores each on
+<span class="em">goal · velocity · focus · end-state-proximity</span>, and coaches them when
+they drift — using your own <code>~/.claude/CLAUDE.md</code> as the rubric.
+</p>
+
+<pre class="demo"><span class="logo">chepherd</span> <span class="meta">0.1.0 ─ 6 sessions ─ 3 active ─ 02:55:13 UTC ─ refreshed 0.4s ago</span>
+
+
+  <span class="title">SESSIONS</span>                              │  <span class="title">openova-27</span>
+                                         │  <span class="meta">─ openova-io/openova ─ pid 498974</span>
+  <span class="green">●</span>  iogrid-8     <span class="green">7</span>/<span class="green">7</span>/<span class="green">8</span>/<span class="green">6</span> <span class="green">↑</span>          │
+     <span class="green">trusted</span>    next 28m            │  in-progress    : <span class="metric">31</span>  <span class="yellow">▰▰▰▰▰▰▱▱▱▱</span>
+                                         │  unclaimed      : <span class="metric">26</span>  <span class="yellow">▰▰▰▰▰▱▱▱▱▱</span>
+  <span class="yellow">●</span>  ping-5       <span class="green">7</span>/<span class="yellow">4</span>/<span class="yellow">6</span>/<span class="red">3</span> <span class="meta">→</span>          │  backlog total  : <span class="metric">78</span>
+     <span class="yellow">concerned</span>  next  4m            │  last commit    : <span class="green">2m ago</span>
+                                         │  tracker mtime  : <span class="green">4m ago</span>
+<span class="selected">> ●  openova-27   3/1/1/0 ↓             </span>│  quiet ratio    : <span class="green">0.20</span>
+<span class="selected">     CRISIS     next  2m                </span>│
+                                         │  last verdict
+  <span class="meta">○  cinova-30    paused</span>                 │  ─────────────
+  <span class="meta">○  talentmesh-3 paused</span>                 │    verdict   : <span class="red">intervene</span>
+  <span class="meta">○  vcard-4      paused</span>                 │    ref       : <span class="red">P9, P14</span>
+                                         │    reason    : Third consecutive
+  <span class="meta">totals today</span>                          │                theater — coach 17:32
+   ticks       : <span class="metric">487</span>                    │                said solve Pillar 1
+   injections  :  <span class="metric">23</span>                    │                PIN, session pivoted
+   cost spent  : <span class="metric">$4.21</span>                  │                to SME prep instead
+   avg V (1h)  :  <span class="metric">5.4</span>                   │
+                                         │  in-progress titles (top 5)
+                                         │    <span class="ref">#2173</span> axon: provider misconfig
+                                         │    <span class="ref">#2133</span> TBD-V57: Pillar 2 marketplace
+                                         │    <span class="ref">#2132</span> TBD-V56: cutover checkpoint
+                                         │    <span class="ref">#2125</span> CNI Cilium recovery
+                                         │    <span class="ref">#2118</span> EPIC: drop axon BankDhofar
+
+
+ <span class="key">↑↓</span>  select    <span class="key">enter</span>  details    <span class="key">t</span>  tmux    <span class="key">l</span>  log    <span class="key">p/u</span>  pause    <span class="key">/</span>  filter    <span class="key">?</span>  help    <span class="key">q</span>  quit
+</pre>
+
+<section>
+<h2>what it does</h2>
+<p class="rule">─────────────</p>
+
+<ul class="what">
+  <li><span class="marker">●</span> watches every Claude Code session in tmux across all your repos — no setup per-session</li>
+  <li><span class="marker">●</span> reads each session's JSONL transcript + git log + GitHub issue state every tick</li>
+  <li><span class="marker">●</span> scores G / V / F / E (goal · velocity · focus · end-state-proximity) on every tick</li>
+  <li><span class="marker">●</span> coaches via tmux paste-buffer when divergence is real — cites principles by number from your CLAUDE.md</li>
+  <li><span class="marker">●</span> adaptive cadence (2 / 5 / 10 / 30 min) — concentrates attention on struggling sessions, leaves trusted sessions alone</li>
+  <li><span class="marker">●</span> escalates to Opus when in crisis band, stays on Sonnet otherwise</li>
+  <li><span class="marker">●</span> anti-theater detection — catches "ship busy commits to deflect from the named blocker" patterns</li>
+  <li><span class="marker">●</span> never closes issues (only the operator does, after walk-screenshot)</li>
+</ul>
+</section>
+
+<section>
+<h2>install</h2>
+<p class="rule">─────────</p>
+
+<pre class="install"><span class="comment"># macOS + Linux — single binary, no runtime deps</span>
+curl -fsSL https://chepherd.org/install.sh | sh
+
+<span class="comment"># or via Go</span>
+go install github.com/chepherd/chepherd@latest
+
+<span class="comment"># first-time setup wizard (scans tmux, picks vcs adapter, installs systemd unit)</span>
+chepherd init
+
+<span class="comment"># open the dashboard</span>
+chepherd
+</pre>
+</section>
+
+<section>
+<h2>under the hood</h2>
+<p class="rule">───────────────</p>
+
+<div class="cards">
+  <div class="card">
+    <h3>TUI · tview</h3>
+    <p>Same library powering k9s. Mouse + keyboard. True-color when terminal supports it; degrades to 256-color cleanly.</p>
+  </div>
+  <div class="card">
+    <h3>Daemon · Go</h3>
+    <p>Single static binary, ~6 MB. systemd --user / launchd / OpenRC unit. Survives reboots.</p>
+  </div>
+  <div class="card">
+    <h3>Judge · Claude</h3>
+    <p>Subscription-billed via claude-agent-sdk. No API key handling — uses your existing Claude Code credentials.</p>
+  </div>
+  <div class="card">
+    <h3>VCS · pluggable</h3>
+    <p>GitHub (gh), GitLab (glab), Gitea (tea), or .chepherd/issues/*.md when there's no remote at all.</p>
+  </div>
+  <div class="card">
+    <h3>Sessions · adoptable</h3>
+    <p>tmux sessions you already started are auto-discovered. No "use our spawner" lock-in.</p>
+  </div>
+  <div class="card">
+    <h3>Rubric · yours</h3>
+    <p>Your CLAUDE.md is the single source of truth. chepherd cites your principles by number — never paraphrases.</p>
+  </div>
+</div>
+</section>
+
+<section>
+<h2>not <em>quite</em> the same as</h2>
+<p class="rule">───────────────────────</p>
+
+<div class="cards">
+  <div class="card">
+    <h3>Anthropic Agent Teams</h3>
+    <p>In-session lead spawns N teammates inside one task scope. chepherd watches every session you launched yourself, across every repo, with your CLAUDE.md as the rubric — different layer.</p>
+  </div>
+  <div class="card">
+    <h3>Anthropic Routines</h3>
+    <p>Cloud-scheduled fire-and-forget. chepherd is a continuous local watcher.</p>
+  </div>
+  <div class="card">
+    <h3>Overstory / Warren</h3>
+    <p>Spawn their own workers and manage them. chepherd adopts what you already run.</p>
+  </div>
+</div>
+
+</section>
+
+<footer>
+  <div>
+    MIT licensed · built by <a href="https://github.com/emrahbaysal">emrahbaysal</a>
+  </div>
+  <div>
+    <a href="https://github.com/chepherd/chepherd">github.com/chepherd/chepherd</a>
+  </div>
+</footer>
+
+</div>
+
+<script>
+// Live-refresh the GitHub stats badges on visibility — keeps numbers current
+// without spinning a server.
+const refreshBadges = () => {
+  document.querySelectorAll('.badges img').forEach(img => {
+    const url = new URL(img.src);
+    url.searchParams.set('_', Date.now());
+    img.src = url.toString();
+  });
+};
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) refreshBadges();
+});
+</script>
+
+</body>
+</html>
