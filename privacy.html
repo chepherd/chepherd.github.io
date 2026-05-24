@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Privacy — chepherd</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    :root {
+      --c-body: #5f9ea0;
+      --c-primary: #ffffff;
+      --c-background: #000000;
+      --c-logo: #ffa500;
+      --c-title: #00ffff;
+      --c-issue-ref: #4682b4;
+      --c-timestamp: #778899;
+      --font-mono:
+        ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, Consolas,
+        monospace;
+    }
+    body {
+      background: var(--c-background);
+      color: var(--c-primary);
+      font-family: var(--font-mono);
+      margin: 0;
+      line-height: 1.6;
+    }
+    .shell {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+    h1 {
+      color: var(--c-logo);
+      font-size: 32px;
+      margin: 0 0 8px;
+    }
+    h2 {
+      color: var(--c-title);
+      font-size: 20px;
+      margin: 32px 0 8px;
+    }
+    p, li {
+      color: var(--c-primary);
+    }
+    .meta {
+      color: var(--c-timestamp);
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+    a {
+      color: var(--c-issue-ref);
+    }
+    a:hover { color: var(--c-title); }
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border: 1px solid var(--c-body);
+      color: var(--c-body);
+      font-size: 12px;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <h1>chepherd privacy</h1>
+    <p class="meta">version 1.0 · effective 2026-05-24 · contact: privacy@chepherd.org</p>
+
+    <p>
+      <span class="pill">SHORT VERSION</span>
+      chepherd is a developer tool. We don't sell your data. The default
+      transport between your bastion and your device is peer-to-peer
+      WebRTC — the chepherd relay only sees the signaling handshake.
+      Your data is your data.
+    </p>
+
+    <h2>1. What chepherd is</h2>
+    <p>
+      chepherd is a TUI + web/iOS/Android dashboard that supervises
+      AI-coding agents you run in tmux sessions on your own machines.
+      The TUI runs locally. The mobile + web clients connect to the
+      local daemon via the optional <em>chepherd-rc</em> remote-control
+      subsystem.
+    </p>
+
+    <h2>2. What we collect</h2>
+    <p>
+      When you sign in to the remote-control mobile/web client, the
+      OpenOva identity provider issues OAuth2 tokens that authenticate
+      you to the chepherd relay. The relay stores:
+    </p>
+    <ul>
+      <li>your user identifier (email address from your IdP claim);</li>
+      <li>the set of bastions you've registered + their hostname/version;</li>
+      <li>device push tokens you opt-in to register (APNs / FCM);</li>
+      <li>connection-state counters for operational telemetry.</li>
+    </ul>
+    <p>
+      The relay does <strong>not</strong> store the contents of your
+      coding sessions, the verdicts the supervisor emits, or any
+      log/state frame exchanged between your bastion and your device.
+    </p>
+
+    <h2>3. What chepherd-rc <em>routes through</em> the relay</h2>
+    <p>
+      <strong>P2P mode (default):</strong> the relay sees SDP offers +
+      ICE candidates for NAT traversal but never decrypts the
+      DataChannel payload — that traffic is DTLS-encrypted directly
+      between your bastion and your device.
+    </p>
+    <p>
+      <strong>Relayed mode (opt-in fallback):</strong> when WebRTC NAT
+      traversal fails (symmetric NAT, corporate proxies), you may
+      choose to route the data plane through the relay's WebSocket
+      multiplexer. The relay CAN see those frames in plaintext-at-app
+      over its TLS connection. This trade-off is explicit and
+      opt-in.
+    </p>
+
+    <h2>4. Telemetry</h2>
+    <p>
+      The relay + web client optionally report error events to Sentry
+      and trace spans to OpenTelemetry collectors. These are
+      env-gated: deployments without Sentry/OTel credentials send
+      nothing. When configured, authorization headers + query strings
+      are stripped from all reports.
+    </p>
+
+    <h2>5. Where data lives</h2>
+    <p>
+      The chepherd relay is hosted on OpenOva infrastructure
+      (Hetzner, EU region). Push notification dispatch goes through
+      APNs (Apple) and FCM (Google) when you opt in; their respective
+      privacy terms apply for the delivery leg only.
+    </p>
+
+    <h2>6. Your rights</h2>
+    <p>
+      You can:
+    </p>
+    <ul>
+      <li>delete your account by running <code>chepherd rc disable</code> on every registered bastion + signing out of all devices;</li>
+      <li>request a copy or deletion of your stored data by emailing <a href="mailto:privacy@chepherd.org">privacy@chepherd.org</a>;</li>
+      <li>self-host the relay entirely (the <code>chepherd-relay</code> source is MIT-licensed) — in that case you control your own data plane and this privacy policy doesn't apply.</li>
+    </ul>
+
+    <h2>7. Open source</h2>
+    <p>
+      All chepherd code is public:
+      <a href="https://github.com/chepherd/chepherd">github.com/chepherd/chepherd</a>,
+      <a href="https://github.com/chepherd/chepherd-relay">chepherd-relay</a>,
+      <a href="https://github.com/chepherd/chepherd-rc-web">chepherd-rc-web</a>,
+      <a href="https://github.com/chepherd/chepherd-rc-ios">chepherd-rc-ios</a>,
+      <a href="https://github.com/chepherd/chepherd-rc-android">chepherd-rc-android</a>.
+      Verify the contract by reading the code.
+    </p>
+
+    <h2>8. Changes</h2>
+    <p>
+      Material changes will be announced via release notes on the
+      individual repos + a notice on this page. Last-changed timestamps
+      live in the git history of <a href="https://github.com/chepherd/chepherd.github.io/blob/main/privacy.html">privacy.html</a>.
+    </p>
+
+    <p style="margin-top: 48px;"><a href="/">← back to chepherd.org</a></p>
+  </div>
+</body>
+</html>
